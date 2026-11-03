@@ -89,9 +89,3 @@ Place this folder in `extensions/`. No dependencies beyond what Forge ships. To 
 
 - UniPC costs **1 NFE per step**, the same as Euler; the corrector reuses the next step's evaluation, so there is no 2x penalty
 - **TeaCache has no UniPC preset.** The shipped `ANIMA_COEFFICIENTS` polynomial is calibrated for the Euler a / ER SDE / Euler step-size distributions. TeaCache can still be enabled, but turn it off for the first round of comparisons
-- **SPEED requires the patched build** of `sdforgeneo-SPEED`. Stock SPEED looks the base sampler up in `k_diffusion.sampling` only and falls back to `sample_euler` silently; the patched build also searches the Forge sampler registry and raises instead of degrading. With the patch, `SPEED` + `UniPC Adv bh2` works and prints `[SPEED] base sampler 'UniPC Adv bh2' -> sample_unipc_adv_bh2 (via forge registry)`
-- SPEED calls the sampler once per segment, so UniPC's multistep history resets at every transition and the first `order - 1` steps of each segment run at reduced order. `order = 2` tolerates this much better than `order = 3`
-
-## License
-
-MIT.
