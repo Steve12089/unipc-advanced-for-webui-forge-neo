@@ -70,68 +70,6 @@ Three independent channels:
    samplers, the currently resolved settings and the parameters of the most
    recent call. `/unipc_adv/selfcheck` is a liveness probe.
 
-## What the variants actually do (short version)
-
-`variant` has only two code paths: `'bh' in variant` -> `multistep_uni_pc_bh_update`,
-else `vary_coeff` -> `multistep_uni_pc_vary_update`.
-
-`bh1` and `bh2` differ in exactly one line:
-
-```python
-if   variant == 'bh1': B_h = hh              # B(h) = h, first-order truncation
-elif variant == 'bh2': B_h = torch.expm1(hh) # B(h) = e^h - 1, exact
-```
-
-`B_h` cancels algebraically everywhere the coefficients come from
-`linalg.solve` (it sits in the denominator of `b` and is multiplied back
-outside). It only survives in the two places that hard-code `rho = 0.5`:
-
-* `uni_pc.py:441-444` - the predictor when `order == 2`
-* `uni_pc.py:449-450` - the corrector when `order == 1`
-
-Both of those fire **only during the first two updates**, i.e. in the high-sigma
-composition regime, and only ~2 of N steps are affected. `bh1`'s first-step
-correction is larger by `h/(e^h-1)`:
-
-| steps | 16 | 20 | 24 | 26 | 30 | 40 |
-|---|---|---|---|---|---|---|
-| bh1 larger by | +15.1% | +12.0% | +9.9% | +9.1% | +7.9% | +5.9% |
-
-So the honest expectation is *a small difference in early composition, not a
-different sampler*. With CFG > 1 the x0 prediction is extrapolated, which
-magnifies that early displacement - that is the plausible mechanism behind the
-"bh2 is stronger with a prompt" folklore, but it is a mechanism, not a
-measurement.
-
-`vary_coeff` is a different beast: at `order == 3` the weight of the freshly
-evaluated point is `-0.08357` for bh1/bh2 but only `-0.00946` for `vary_coeff`,
-so it effectively throws that point away and degrades towards a lower order
-method. In a synthetic ODE with a known solution it does not converge at all
-(1e-2 error floor at 100 steps). Expect it to look *worse*, not different.
-
-## How to test
-
-Recommended protocol, in this order:
-
-1. **Baseline gate.** Pick one seed, 26 steps, and generate with stock `UniPC`
-   and with `UniPC Adv bh1`. They must be pixel-identical. If they are not, the
-   extension is not being picked up the way you think and nothing else is worth
-   testing yet.
-2. **SDXL** (standard eps-pred): `bh1` vs `bh2` at 20 / 26 / 40 steps, CFG 5-7.
-   The gap should shrink as steps grow, per the table above.
-3. **SDXL v-pred**: same, but note that UniPC's `SigmaConvert` assumes the
-   VE(k-diffusion) convention. Stock UniPC already has this limitation - if
-   v-pred looks broken it is very likely broken identically for stock UniPC,
-   which check 1 will tell you.
-4. **Anima** (flow matching): UniPC works through the `lambda = -log(sigma)`
-   identity, which is exact for the flow parameterisation, so it should be
-   well-behaved. Worth trying `sigma_mode = logSNR` here since flow models are
-   trained on a log-SNR schedule.
-5. **Knobs**: `order` 1 vs 3 vs 4 (4 is outside what the paper validated, it
-   runs but treat it as experimental), `lower_order_final` on/off,
-   `discard_next_to_last_sigma` on/off.
-
-
 ## Install / remove
 
 Already installed at `extensions/uni-pc-advanced/`. No dependencies beyond what
