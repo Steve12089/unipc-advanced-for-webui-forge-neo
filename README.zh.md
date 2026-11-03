@@ -89,9 +89,4 @@
 
 - UniPC 每步只花 **1 次 NFE**，与 Euler 相同；校正项复用下一步的评估，没有 2 倍开销
 - **TeaCache 没有 UniPC 预设。** 内置的 `ANIMA_COEFFICIENTS` 多项式是按 Euler a / ER SDE / Euler 的步长分布标定的。TeaCache 仍可开启，但第一轮对比请关掉
-- **SPEED 需要打过补丁的版本**（`sdforgeneo-SPEED`）。原版 SPEED 只在 `k_diffusion.sampling` 里查采样器，查不到会静默退化成 `sample_euler`；补丁版还会搜索 Forge 采样器注册表，找不到时直接报错。打上补丁后 `SPEED` + `UniPC Adv bh2` 可以正常工作，并打印 `[SPEED] base sampler 'UniPC Adv bh2' -> sample_unipc_adv_bh2 (via forge registry)`
-- SPEED 是分段调用采样器，所以 UniPC 的多步历史在每个过渡点清零，每段开头 `order - 1` 步会降阶运行。`order = 2` 对此的容忍度远高于 `order = 3`
 
-## 许可
-
-MIT。
