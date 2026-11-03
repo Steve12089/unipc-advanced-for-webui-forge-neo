@@ -131,20 +131,6 @@ Recommended protocol, in this order:
    runs but treat it as experimental), `lower_order_final` on/off,
    `discard_next_to_last_sigma` on/off.
 
-### Caveats you will hit
-
-* **`SPEED` cannot use UniPC.** `speed_sampler_extension.py:128-131` looks the
-  sampler up in `k_diffusion.sampling` only, and falls back to
-  `sample_euler` **silently** when the lookup fails. If you set Base Sampler to
-  a UniPC entry while SPEED is active you will silently get Euler. Test UniPC
-  in a bare configuration.
-* **TeaCache has no UniPC preset.** `anima_teacache.py:22-33` only ships Euler a
-  / ER SDE / Euler families, and `ANIMA_COEFFICIENTS` is a single polynomial
-  calibrated for those. TeaCache can still be enabled but its threshold is
-  uncalibrated for UniPC's step-size distribution - turn it off for the first
-  round of comparisons.
-* UniPC costs **1 NFE per step**, the same as Euler (the corrector reuses the
-  next step's evaluation). There is no 2x penalty.
 
 ## Install / remove
 
